@@ -73,5 +73,144 @@ fit |>
   knitr::kable(digits = 3)
 ```
 
+## Quick lood at diagnostics
+
+```{r}
+modelr::add_residuals(nyc_airbnb, fit)
+```
+
+```{r}
+modelr::add_predictions(nyc_airbnb, fit)
+```
 
 
+```{r}
+nyc_airbnb |>
+  modelr::add_residuals(fit) |>
+  ggplot(aes(x = resid)) +
+  geom_density() +
+  xlim(-100, 500)
+```
+
+```{r}
+nyc_airbnb |>
+  modelr::add_residuals(fit) |>
+  ggplot(aes(x = borough, y = resid)) + geom_violin()
+```
+
+```{r}
+nyc_airbnb |>
+  modelr::add_residuals(fit) |>
+  ggplot(aes(x = stars, y = resid)) + geom_point()
+```
+
+##Hypothesis testing for categorical precitor
+
+fit a "null" and "alternative" model
+
+```{r}
+fit |>
+  broom::tidy()
+
+fit_null = lm(price ~ stars + borough, data = nyc_airbnb)
+fit_alt = lm(price ~ stars + borough + room_type, data = nyc_airbnb)
+```
+
+```{r}
+anova(fit_null, fit_alt) |>
+  broom::tidy()
+```
+
+##Borough-level differences
+
+Nesting data
+
+```{r}
+nyc_airbnb |>
+  lm(price ~ stars * borough + room_type * borough, data = _) |>
+  broom::tidy() |>
+  knitr::kable(digits = 3)
+```
+
+```{r}
+nest_lm_res =
+  nyc_airbnb |>
+  nest(data = -borough) |>
+  mutate(
+    models = map(data, \(df) lm(price ~ stars + room_type, data = df)),
+    results = map(models, broom::tidy)) |>
+  select(-data, -models) |>
+  unnest(results)
+```
+
+```{r}
+nest_lm_res |>
+  select(borough, term, estimate) |>
+  mutate(tterm = fct_inorder(term)) |>
+  pivot_wider(
+    names_from = term, values_from = estimate) |>
+  knitr::kable(digits = 3)
+```
+
+```{r}
+manhattan_airbnb = 
+  nyc_airbnb |>
+  filter(borough == "Manhattan")
+
+manhattan_nest_lm_res = 
+  manhattan_airbnb |>
+  nest(data = -neighborhood) |>
+  mutate(
+    models = map(data, \(df) lm(price ~ stars + room_type, data = df)), 
+    results = map(models, broom::tidy)) |>
+  select(-data, -models) |>
+  unnest(results)
+```
+
+```{r}
+manhattan_nest_lm_res |>
+  filter(str_detect(term, "room_type")) |>
+  ggplot(aes(x = neighborhood, y = estimate)) +
+  geom_point() +
+  facet_wrap(~term) +
+  theme(axis.text.x = element_text(angle = 80, hjust = 1))
+```
+
+```{r}
+manhattan_airbnb |>
+  lme4::lmer(price ~ stars + room_type + (1 + room_type | neighborhood), data = _) |>
+  broom.mixed::tidy()
+```
+
+Binary outcomes
+
+```{r}
+baltimore_df = 
+  read_csv("data/homicide-data.csv") |>
+  filter(city == "Baltimore") |>
+  mutate(
+    resolved = as.numeric(disposition == "Closed by arrest"),
+    victim_age = as.numeric(victim_age),
+    victim_race = fct_relevel(victim_race, "White")) |>
+  select(resolved, victim_age, victim_race, victim_sex)
+```
+
+```{r}
+fit_logistic =
+  baltimore_df |>
+  glm(resolved ~ victim_age + victim_race + victim_sex, data = _, family = binomial())
+```
+
+```{r}
+fit_logistic |>
+  broom::tidy() |>
+  mutate(OR = exp(estimate)) |>
+  select(term, log_OR = estimate, OR, p.value) |>
+  knitr::kable(digits = 3)
+```
+
+```{r}
+baltimore_df |>
+  modelr::add_predictions(fit_logistic) |>
+  mutate(fittted_prob = boot::inv.logit(pred))
+```

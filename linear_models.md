@@ -8910,3 +8910,303 @@ fit |>
 | Borough: Queens        |  -77.075 |   0.000 |
 | Borough: Bronx         |  -90.324 |   0.000 |
 | Borough: Staten Island |  -76.628 |   0.000 |
+
+## Quick lood at diagnostics
+
+``` r
+modelr::add_residuals(nyc_airbnb, fit)
+```
+
+    ## # A tibble: 40,753 × 6
+    ##    price stars borough neighborhood room_type        resid
+    ##    <dbl> <dbl> <fct>   <chr>        <fct>            <dbl>
+    ##  1    99   5   Bronx   City Island  Private room      9.58
+    ##  2   200  NA   Bronx   City Island  Private room     NA   
+    ##  3   300  NA   Bronx   City Island  Entire home/apt  NA   
+    ##  4   125   5   Bronx   City Island  Entire home/apt  35.6 
+    ##  5    69   5   Bronx   City Island  Private room    -20.4 
+    ##  6   125   5   Bronx   City Island  Entire home/apt  35.6 
+    ##  7    85   5   Bronx   City Island  Entire home/apt  -4.42
+    ##  8    39   4.5 Bronx   Allerton     Private room    -34.5 
+    ##  9    95   5   Bronx   Allerton     Entire home/apt   5.58
+    ## 10   125   4.5 Bronx   Allerton     Entire home/apt  51.5 
+    ## # ℹ 40,743 more rows
+
+``` r
+modelr::add_predictions(nyc_airbnb, fit)
+```
+
+    ## # A tibble: 40,753 × 6
+    ##    price stars borough neighborhood room_type        pred
+    ##    <dbl> <dbl> <fct>   <chr>        <fct>           <dbl>
+    ##  1    99   5   Bronx   City Island  Private room     89.4
+    ##  2   200  NA   Bronx   City Island  Private room     NA  
+    ##  3   300  NA   Bronx   City Island  Entire home/apt  NA  
+    ##  4   125   5   Bronx   City Island  Entire home/apt  89.4
+    ##  5    69   5   Bronx   City Island  Private room     89.4
+    ##  6   125   5   Bronx   City Island  Entire home/apt  89.4
+    ##  7    85   5   Bronx   City Island  Entire home/apt  89.4
+    ##  8    39   4.5 Bronx   Allerton     Private room     73.5
+    ##  9    95   5   Bronx   Allerton     Entire home/apt  89.4
+    ## 10   125   4.5 Bronx   Allerton     Entire home/apt  73.5
+    ## # ℹ 40,743 more rows
+
+``` r
+nyc_airbnb |>
+  modelr::add_residuals(fit) |>
+  ggplot(aes(x = resid)) +
+  geom_density() +
+  xlim(-100, 500)
+```
+
+    ## Warning: Removed 12134 rows containing non-finite values (`stat_density()`).
+
+![](linear_models_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+
+``` r
+nyc_airbnb |>
+  modelr::add_residuals(fit) |>
+  ggplot(aes(x = borough, y = resid)) + geom_violin()
+```
+
+    ## Warning: Removed 10037 rows containing non-finite values (`stat_ydensity()`).
+
+![](linear_models_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+
+``` r
+nyc_airbnb |>
+  modelr::add_residuals(fit) |>
+  ggplot(aes(x = stars, y = resid)) + geom_point()
+```
+
+    ## Warning: Removed 10037 rows containing missing values (`geom_point()`).
+
+![](linear_models_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+
+\##Hypothesis testing for categorical precitor
+
+fit a “null” and “alternative” model
+
+``` r
+fit |>
+  broom::tidy()
+```
+
+    ## # A tibble: 6 × 5
+    ##   term                 estimate std.error statistic   p.value
+    ##   <chr>                   <dbl>     <dbl>     <dbl>     <dbl>
+    ## 1 (Intercept)              20.8     12.1       1.72 8.59e-  2
+    ## 2 stars                    31.8      2.51     12.6  1.45e- 36
+    ## 3 boroughBrooklyn         -49.8      2.23    -22.3  1.31e-109
+    ## 4 boroughQueens           -77.1      3.72    -20.7  7.47e- 95
+    ## 5 boroughBronx            -90.3      8.55    -10.6  4.57e- 26
+    ## 6 boroughStaten Island    -76.6     13.4      -5.73 9.96e-  9
+
+``` r
+fit_null = lm(price ~ stars + borough, data = nyc_airbnb)
+fit_alt = lm(price ~ stars + borough + room_type, data = nyc_airbnb)
+```
+
+``` r
+anova(fit_null, fit_alt) |>
+  broom::tidy()
+```
+
+    ## # A tibble: 2 × 7
+    ##   term                        df.residual    rss    df   sumsq statistic p.value
+    ##   <chr>                             <dbl>  <dbl> <dbl>   <dbl>     <dbl>   <dbl>
+    ## 1 price ~ stars + borough           30710 1.01e9    NA NA            NA       NA
+    ## 2 price ~ stars + borough + …       30708 9.22e8     2  8.44e7     1405.       0
+
+\##Borough-level differences
+
+Nesting data
+
+``` r
+nyc_airbnb |>
+  lm(price ~ stars * borough + room_type * borough, data = _) |>
+  broom::tidy() |>
+  knitr::kable(digits = 3)
+```
+
+| term                                       | estimate | std.error | statistic | p.value |
+|:-------------------------------------------|---------:|----------:|----------:|--------:|
+| (Intercept)                                |   95.694 |    19.135 |     5.001 |   0.000 |
+| stars                                      |   27.110 |     3.954 |     6.856 |   0.000 |
+| boroughBrooklyn                            |  -26.066 |    25.015 |    -1.042 |   0.297 |
+| boroughQueens                              |   -4.118 |    40.568 |    -0.102 |   0.919 |
+| boroughBronx                               |   -5.627 |    77.606 |    -0.073 |   0.942 |
+| boroughStaten Island                       |   64.781 |   145.892 |     0.444 |   0.657 |
+| room_typePrivate room                      | -124.188 |     2.988 |   -41.565 |   0.000 |
+| room_typeShared room                       | -153.635 |     8.669 |   -17.722 |   0.000 |
+| stars:boroughBrooklyn                      |   -6.139 |     5.223 |    -1.175 |   0.240 |
+| stars:boroughQueens                        |  -17.455 |     8.517 |    -2.050 |   0.040 |
+| stars:boroughBronx                         |  -22.664 |    17.055 |    -1.329 |   0.184 |
+| stars:boroughStaten Island                 |  -32.746 |    31.159 |    -1.051 |   0.293 |
+| boroughBrooklyn:room_typePrivate room      |   31.965 |     4.317 |     7.405 |   0.000 |
+| boroughQueens:room_typePrivate room        |   54.933 |     7.439 |     7.384 |   0.000 |
+| boroughBronx:room_typePrivate room         |   71.273 |    17.956 |     3.969 |   0.000 |
+| boroughStaten Island:room_typePrivate room |   48.247 |    25.869 |     1.865 |   0.062 |
+| boroughBrooklyn:room_typeShared room       |   47.797 |    13.859 |     3.449 |   0.001 |
+| boroughQueens:room_typeShared room         |   58.662 |    17.850 |     3.286 |   0.001 |
+| boroughBronx:room_typeShared room          |   83.089 |    42.340 |     1.962 |   0.050 |
+| boroughStaten Island:room_typeShared room  |   43.523 |   174.357 |     0.250 |   0.803 |
+
+``` r
+nest_lm_res =
+  nyc_airbnb |>
+  nest(data = -borough) |>
+  mutate(
+    models = map(data, \(df) lm(price ~ stars + room_type, data = df)),
+    results = map(models, broom::tidy)) |>
+  select(-data, -models) |>
+  unnest(results)
+```
+
+``` r
+nest_lm_res |>
+  select(borough, term, estimate) |>
+  mutate(tterm = fct_inorder(term)) |>
+  pivot_wider(
+    names_from = term, values_from = estimate) |>
+  knitr::kable(digits = 3)
+```
+
+| borough       | tterm                 | (Intercept) |  stars | room_typePrivate room | room_typeShared room |
+|:--------------|:----------------------|------------:|-------:|----------------------:|---------------------:|
+| Bronx         | (Intercept)           |      90.067 |     NA |                    NA |                   NA |
+| Bronx         | stars                 |          NA |  4.446 |                    NA |                   NA |
+| Bronx         | room_typePrivate room |          NA |     NA |               -52.915 |                   NA |
+| Bronx         | room_typeShared room  |          NA |     NA |                    NA |              -70.547 |
+| Queens        | (Intercept)           |      91.575 |     NA |                    NA |                   NA |
+| Queens        | stars                 |          NA |  9.654 |                    NA |                   NA |
+| Queens        | room_typePrivate room |          NA |     NA |               -69.255 |                   NA |
+| Queens        | room_typeShared room  |          NA |     NA |                    NA |              -94.973 |
+| Brooklyn      | (Intercept)           |      69.627 |     NA |                    NA |                   NA |
+| Brooklyn      | stars                 |          NA | 20.971 |                    NA |                   NA |
+| Brooklyn      | room_typePrivate room |          NA |     NA |               -92.223 |                   NA |
+| Brooklyn      | room_typeShared room  |          NA |     NA |                    NA |             -105.839 |
+| Staten Island | (Intercept)           |     160.474 |     NA |                    NA |                   NA |
+| Staten Island | stars                 |          NA | -5.636 |                    NA |                   NA |
+| Staten Island | room_typePrivate room |          NA |     NA |               -75.941 |                   NA |
+| Staten Island | room_typeShared room  |          NA |     NA |                    NA |             -110.112 |
+| Manhattan     | (Intercept)           |      95.694 |     NA |                    NA |                   NA |
+| Manhattan     | stars                 |          NA | 27.110 |                    NA |                   NA |
+| Manhattan     | room_typePrivate room |          NA |     NA |              -124.188 |                   NA |
+| Manhattan     | room_typeShared room  |          NA |     NA |                    NA |             -153.635 |
+
+``` r
+manhattan_airbnb = 
+  nyc_airbnb |>
+  filter(borough == "Manhattan")
+
+manhattan_nest_lm_res = 
+  manhattan_airbnb |>
+  nest(data = -neighborhood) |>
+  mutate(
+    models = map(data, \(df) lm(price ~ stars + room_type, data = df)), 
+    results = map(models, broom::tidy)) |>
+  select(-data, -models) |>
+  unnest(results)
+```
+
+``` r
+manhattan_nest_lm_res |>
+  filter(str_detect(term, "room_type")) |>
+  ggplot(aes(x = neighborhood, y = estimate)) +
+  geom_point() +
+  facet_wrap(~term) +
+  theme(axis.text.x = element_text(angle = 80, hjust = 1))
+```
+
+![](linear_models_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+
+``` r
+manhattan_airbnb |>
+  lme4::lmer(price ~ stars + room_type + (1 + room_type | neighborhood), data = _) |>
+  broom.mixed::tidy()
+```
+
+    ## boundary (singular) fit: see help('isSingular')
+
+    ## # A tibble: 11 × 6
+    ##    effect   group        term                       estimate std.error statistic
+    ##    <chr>    <chr>        <chr>                         <dbl>     <dbl>     <dbl>
+    ##  1 fixed    <NA>         (Intercept)                 250.        26.6      9.41 
+    ##  2 fixed    <NA>         stars                        -3.16       5.00    -0.631
+    ##  3 fixed    <NA>         room_typePrivate room      -124.         7.80   -15.9  
+    ##  4 fixed    <NA>         room_typeShared room       -157.        12.9    -12.2  
+    ##  5 ran_pars neighborhood sd__(Intercept)              59.3       NA       NA    
+    ##  6 ran_pars neighborhood cor__(Intercept).room_typ…   -0.987     NA       NA    
+    ##  7 ran_pars neighborhood cor__(Intercept).room_typ…   -1.00      NA       NA    
+    ##  8 ran_pars neighborhood sd__room_typePrivate room    36.7       NA       NA    
+    ##  9 ran_pars neighborhood cor__room_typePrivate roo…    0.992     NA       NA    
+    ## 10 ran_pars neighborhood sd__room_typeShared room     43.6       NA       NA    
+    ## 11 ran_pars Residual     sd__Observation             198.        NA       NA
+
+Binary outcomes
+
+``` r
+baltimore_df = 
+  read_csv("data/homicide-data.csv") |>
+  filter(city == "Baltimore") |>
+  mutate(
+    resolved = as.numeric(disposition == "Closed by arrest"),
+    victim_age = as.numeric(victim_age),
+    victim_race = fct_relevel(victim_race, "White")) |>
+  select(resolved, victim_age, victim_race, victim_sex)
+```
+
+    ## Rows: 52179 Columns: 12
+    ## ── Column specification ────────────────────────────────────────────────────────
+    ## Delimiter: ","
+    ## chr (9): uid, victim_last, victim_first, victim_race, victim_age, victim_sex...
+    ## dbl (3): reported_date, lat, lon
+    ## 
+    ## ℹ Use `spec()` to retrieve the full column specification for this data.
+    ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+``` r
+fit_logistic =
+  baltimore_df |>
+  glm(resolved ~ victim_age + victim_race + victim_sex, data = _, family = binomial())
+```
+
+``` r
+fit_logistic |>
+  broom::tidy() |>
+  mutate(OR = exp(estimate)) |>
+  select(term, log_OR = estimate, OR, p.value) |>
+  knitr::kable(digits = 3)
+```
+
+| term                | log_OR |    OR | p.value |
+|:--------------------|-------:|------:|--------:|
+| (Intercept)         |  1.190 | 3.287 |   0.000 |
+| victim_age          | -0.007 | 0.993 |   0.027 |
+| victim_raceAsian    |  0.296 | 1.345 |   0.653 |
+| victim_raceBlack    | -0.842 | 0.431 |   0.000 |
+| victim_raceHispanic | -0.265 | 0.767 |   0.402 |
+| victim_raceOther    | -0.768 | 0.464 |   0.385 |
+| victim_sexMale      | -0.880 | 0.415 |   0.000 |
+
+``` r
+baltimore_df |>
+  modelr::add_predictions(fit_logistic) |>
+  mutate(fittted_prob = boot::inv.logit(pred))
+```
+
+    ## # A tibble: 2,827 × 6
+    ##    resolved victim_age victim_race victim_sex    pred fittted_prob
+    ##       <dbl>      <dbl> <fct>       <chr>        <dbl>        <dbl>
+    ##  1        0         17 Black       Male       -0.654         0.342
+    ##  2        0         26 Black       Male       -0.720         0.327
+    ##  3        0         21 Black       Male       -0.683         0.335
+    ##  4        1         61 White       Male       -0.131         0.467
+    ##  5        1         46 Black       Male       -0.864         0.296
+    ##  6        1         27 Black       Male       -0.727         0.326
+    ##  7        1         21 Black       Male       -0.683         0.335
+    ##  8        1         16 Black       Male       -0.647         0.344
+    ##  9        1         21 Black       Male       -0.683         0.335
+    ## 10        1         44 Black       Female      0.0297        0.507
+    ## # ℹ 2,817 more rows
