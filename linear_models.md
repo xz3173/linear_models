@@ -9144,7 +9144,7 @@ manhattan_airbnb |>
     ## 10 ran_pars neighborhood sd__room_typeShared room     43.6       NA       NA    
     ## 11 ran_pars Residual     sd__Observation             198.        NA       NA
 
-Binary outcomes
+\##Homicides in Baltimore Binary outcomes
 
 ``` r
 baltimore_df = 
@@ -9166,11 +9166,15 @@ baltimore_df =
     ## ℹ Use `spec()` to retrieve the full column specification for this data.
     ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
+fitting a logistic regression
+
 ``` r
 fit_logistic =
   baltimore_df |>
   glm(resolved ~ victim_age + victim_race + victim_sex, data = _, family = binomial())
 ```
+
+look at model results
 
 ``` r
 fit_logistic |>
@@ -9193,20 +9197,20 @@ fit_logistic |>
 ``` r
 baltimore_df |>
   modelr::add_predictions(fit_logistic) |>
-  mutate(fittted_prob = boot::inv.logit(pred))
+  mutate(fitted_prob = boot::inv.logit(pred))
 ```
 
     ## # A tibble: 2,827 × 6
-    ##    resolved victim_age victim_race victim_sex    pred fittted_prob
-    ##       <dbl>      <dbl> <fct>       <chr>        <dbl>        <dbl>
-    ##  1        0         17 Black       Male       -0.654         0.342
-    ##  2        0         26 Black       Male       -0.720         0.327
-    ##  3        0         21 Black       Male       -0.683         0.335
-    ##  4        1         61 White       Male       -0.131         0.467
-    ##  5        1         46 Black       Male       -0.864         0.296
-    ##  6        1         27 Black       Male       -0.727         0.326
-    ##  7        1         21 Black       Male       -0.683         0.335
-    ##  8        1         16 Black       Male       -0.647         0.344
-    ##  9        1         21 Black       Male       -0.683         0.335
-    ## 10        1         44 Black       Female      0.0297        0.507
+    ##    resolved victim_age victim_race victim_sex    pred fitted_prob
+    ##       <dbl>      <dbl> <fct>       <chr>        <dbl>       <dbl>
+    ##  1        0         17 Black       Male       -0.654        0.342
+    ##  2        0         26 Black       Male       -0.720        0.327
+    ##  3        0         21 Black       Male       -0.683        0.335
+    ##  4        1         61 White       Male       -0.131        0.467
+    ##  5        1         46 Black       Male       -0.864        0.296
+    ##  6        1         27 Black       Male       -0.727        0.326
+    ##  7        1         21 Black       Male       -0.683        0.335
+    ##  8        1         16 Black       Male       -0.647        0.344
+    ##  9        1         21 Black       Male       -0.683        0.335
+    ## 10        1         44 Black       Female      0.0297       0.507
     ## # ℹ 2,817 more rows

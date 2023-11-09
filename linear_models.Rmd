@@ -182,6 +182,7 @@ manhattan_airbnb |>
   broom.mixed::tidy()
 ```
 
+##Homicides in Baltimore
 Binary outcomes
 
 ```{r}
@@ -195,11 +196,15 @@ baltimore_df =
   select(resolved, victim_age, victim_race, victim_sex)
 ```
 
+fitting a logistic regression
+
 ```{r}
 fit_logistic =
   baltimore_df |>
   glm(resolved ~ victim_age + victim_race + victim_sex, data = _, family = binomial())
 ```
+
+look at model results
 
 ```{r}
 fit_logistic |>
@@ -212,5 +217,5 @@ fit_logistic |>
 ```{r}
 baltimore_df |>
   modelr::add_predictions(fit_logistic) |>
-  mutate(fittted_prob = boot::inv.logit(pred))
+  mutate(fitted_prob = boot::inv.logit(pred))
 ```
