@@ -1,0 +1,11 @@
+---
+title: "Bootstrapping"
+author: "Xue Zhang"
+date: "2023-11-16"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+
